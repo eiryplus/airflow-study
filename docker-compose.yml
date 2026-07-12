@@ -1,0 +1,94 @@
+x-airflow-common: &airflow-common
+  build: .
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    # 学習環境のため認証は全員 admin 扱い(SimpleAuthManager)
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__API_AUTH__JWT_SECRET: airflow-study-local-jwt-secret
+    # dbt-study の Postgres への接続(共有ネットワーク data-platform 経由)
+    AIRFLOW_CONN_DBT_POSTGRES: postgresql://dbt:dbt@dbt-postgres:5432/dbt_learning
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    # dbt-study の dbt プロジェクト(Cosmos が DAG 生成・実行に使用)
+    - ../dbt-study/dbt_project:/opt/airflow/dbt_project
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+
+  airflow-init:
+    <<: *airflow-common
+    command: airflow db migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  airflow-apiserver:
+    <<: *airflow-common
+    command: airflow api-server
+    # ホスト側 8080 は別インスタンスで使用予定のため 8081 を割り当てる
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: airflow scheduler
+    # LocalExecutor ではタスクが scheduler コンテナ内で実行されるため、
+    # dbt-study と連携する共有ネットワークに参加させる
+    networks:
+      - default
+      - data-platform
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: airflow dag-processor
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-triggerer:
+    <<: *airflow-common
+    command: airflow triggerer
+    # Deferrable Operator から dbt-study 側へアクセスできるようにする
+    networks:
+      - default
+      - data-platform
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  postgres-db-volume:
+
+networks:
+  data-platform:
+    external: true
