@@ -1,0 +1,12 @@
+[project]
+name = "airflow-study"
+version = "0.1.0"
+description = "Apache Airflow learning environment"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "apache-airflow[postgres] (==3.3.0)",
+    "astronomer-cosmos (==1.15.0)",
+]
+
+[tool.poetry]
+package-mode = false
