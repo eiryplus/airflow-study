@@ -1,7 +1,7 @@
 # Airflow learning environment (Docker Compose + LocalExecutor)
 COMPOSE := docker compose
 
-.PHONY: install build network up down restart logs ps dags-list clean
+.PHONY: install build network up down restart logs ps dags-list clean test
 
 ## dbt-study と共有する external ネットワークを作成(存在しなければ)
 network:
@@ -36,6 +36,10 @@ ps:
 ## 認識されている DAG の一覧を表示
 dags-list:
 	$(COMPOSE) exec airflow-scheduler airflow dags list
+
+## unittest をカバレッジ計測付きで実行(要 make install)
+test:
+	poetry run pytest
 
 ## コンテナ・ボリューム・ログを削除して初期状態に戻す
 clean:
