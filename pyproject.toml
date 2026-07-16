@@ -10,3 +10,23 @@ dependencies = [
 
 [tool.poetry]
 package-mode = false
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.1.1,<10.0.0)",
+    "pytest-cov (>=7.1.0,<8.0.0)",
+    "coverage (>=7.15.2,<8.0.0)"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=dags --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
+source = ["dags"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+]

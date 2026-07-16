@@ -11,3 +11,8 @@ logs/
 standalone_admin_password.txt
 simple_auth_manager_passwords.json.generated
 webserver_config.py
+
+# Test runtime files
+.airflow_test_home/
+.coverage
+.pytest_cache/

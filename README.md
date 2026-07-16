@@ -72,6 +72,14 @@ make dags-list  # 認識されている DAG の確認
 make logs       # 全サービスのログ追跡
 ```
 
+## テスト
+
+```sh
+make test  # pytest をカバレッジ計測付きで実行(要 make install)
+```
+
+`dags/` にコードを追加・変更したら `tests/` 配下にも対応する unittest を追加してください([CLAUDE.md](CLAUDE.md) 参照)。
+
 ## 停止・クリーンアップ
 
 ```sh
